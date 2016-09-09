@@ -3,8 +3,10 @@ package com.example.esziger.popularmovies;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.util.ArraySet;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -12,6 +14,11 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ListView;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -21,6 +28,9 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * A placeholder fragment containing a simple view.
@@ -28,6 +38,8 @@ import java.net.URL;
 public class MainActivityFragment extends Fragment {
 
     private final String LOG_TAG= "MainActivityFragment";
+
+    private MovieAdapter mMovieAdapter;
 
     public MainActivityFragment() {
     }
@@ -54,7 +66,20 @@ public class MainActivityFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_main, container, false);
+
+        Movie [] movies = new Movie[2];
+        movies[0] = new Movie("Title","image path","overview",4.0,"2014-02-12");
+        movies[1] = new Movie("Title 2","image path 2","overview 2",4.2,"2014-02-12");
+        ArrayList<Movie> fakeMovies = new ArrayList<Movie>(Arrays.asList(movies));
+
+        mMovieAdapter = new MovieAdapter(getActivity(),fakeMovies);
+
+        View view = inflater.inflate(R.layout.fragment_main, container, false);
+
+        ListView listview = (ListView)view.findViewById(R.id.listView_movies);
+        listview.setAdapter(mMovieAdapter);
+
+        return view;
     }
 
     @Override
@@ -77,25 +102,42 @@ public class MainActivityFragment extends Fragment {
         return super.onOptionsItemSelected(item);
     }
 
-    private class MovieDownloader extends AsyncTask<Void,Void,Void>
+    private class MovieDownloader extends AsyncTask<Void,Void,Movie []>
     {
         @Override
-        protected Void doInBackground(Void... params) {
+        protected void onPostExecute(Movie[] movies) {
+
+            if(movies != null)
+            {
+                mMovieAdapter.clear();
+                for(int i = 0; i < movies.length ; ++i)
+                {
+                    mMovieAdapter.add(movies[i]);
+                }
+            }
+
+            super.onPostExecute(movies);
+        }
+
+        @Override
+        protected Movie [] doInBackground(Void... params) {
 
             HttpURLConnection urlConnection = null;
             BufferedReader reader = null;
 
             String moviesJsonStr = null;
 
-            final String BASE_URL= "https://api.themoviedb.org/3/movie/550?";
+           // final String BASE_URL= "https://api.themoviedb.org/3/movie/550?";
             final String API_KEY="api_key";
+
+            final String POPULAR_BASE_URL = "https://api.themoviedb.org/3/movie/popular?";
 
             //one picture can be found here:
             //http://image.tmdb.org/t/p/w185/8uO0gUM8aNqYLs1OsTBQiXu0fEv.jpg
 
             final String API_KEY_VALUE=appid.getApiKeyValue();
 
-            Uri buildUri = Uri.parse(BASE_URL).buildUpon()
+            Uri buildUri = Uri.parse(POPULAR_BASE_URL).buildUpon()
                     .appendQueryParameter(API_KEY,API_KEY_VALUE)
                     .build();
 
@@ -154,10 +196,56 @@ public class MainActivityFragment extends Fragment {
                 }
             }
 
-            //getMoviesDataFromJson()
+            try {
+                return getMoviesDataFromJson(moviesJsonStr);
+            } catch (JSONException e) {
+                Log.e(LOG_TAG, "Error in getMoviesDataFromJson()", e);
+            }
 
             return null;
 
+        }
+
+        private
+        Movie [] getMoviesDataFromJson(String moviesJsonString) throws JSONException {
+
+            //List of JSON objects which needs to be extracted
+            final String ARRAY_NAME = "results";
+            final String TITLE = "original_title";
+            final String IMAGE = "poster_path";
+            final String OVERVIEW = "overview";
+            final String USER_RATING = "vote_average";
+            final String RELEASE_DATE = "release_date";
+
+            JSONObject moviesJson = new JSONObject(moviesJsonString);
+            JSONArray movieArray = moviesJson.getJSONArray(ARRAY_NAME);
+
+            Movie [] moviesResult = new Movie[movieArray.length()];
+
+            final String IMAGE_BASE_URL = "http://image.tmdb.org/t/p/w185";
+
+            for(int i = 0; i < movieArray.length(); ++i)
+            {
+                JSONObject movieJson =  movieArray.getJSONObject(i);
+
+                //get Title
+                String title = movieJson.getString(TITLE);
+
+                String image = movieJson.getString(IMAGE);
+
+                String overview = movieJson.getString(OVERVIEW);
+
+                Double user_rating = movieJson.getDouble(USER_RATING);
+
+                String release_date = movieJson.getString(RELEASE_DATE);
+
+                Movie movie = new Movie(title, IMAGE_BASE_URL + image, overview, user_rating, release_date);
+                moviesResult[i] = movie;
+
+                Log.v(LOG_TAG, movie.toString());
+            }
+
+            return moviesResult;
         }
     }
 
