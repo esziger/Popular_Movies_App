@@ -14,7 +14,10 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.ListView;
+
+import com.squareup.picasso.Picasso;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -54,7 +57,7 @@ public class MainActivityFragment extends Fragment {
     public void onStart() {
         super.onStart();
 
-        //updateMovies();
+        updateMovies();
     }
 
     private void updateMovies() {
@@ -65,14 +68,9 @@ public class MainActivityFragment extends Fragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-
-        Movie [] movies = new Movie[2];
-        movies[0] = new Movie("Title","image path","overview",4.0,"2014-02-12");
-        movies[1] = new Movie("Title 2","image path 2","overview 2",4.2,"2014-02-12");
-        ArrayList<Movie> fakeMovies = new ArrayList<Movie>(Arrays.asList(movies));
-
-        mMovieAdapter = new MovieAdapter(getActivity(),fakeMovies);
+                             Bundle savedInstanceState)
+    {
+        mMovieAdapter = new MovieAdapter(getActivity(),new ArrayList<Movie>());
 
         View view = inflater.inflate(R.layout.fragment_main, container, false);
 
@@ -222,7 +220,9 @@ public class MainActivityFragment extends Fragment {
 
             Movie [] moviesResult = new Movie[movieArray.length()];
 
-            final String IMAGE_BASE_URL = "http://image.tmdb.org/t/p/w185";
+            //final String IMAGE_BASE_URL = "http://image.tmdb.org/t/p/w185";
+            //final String IMAGE_BASE_URL = "http://image.tmdb.org/t/p/w342";
+            final String IMAGE_BASE_URL = "http://image.tmdb.org/t/p/w500";
 
             for(int i = 0; i < movieArray.length(); ++i)
             {
